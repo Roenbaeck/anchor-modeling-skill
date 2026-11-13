@@ -23,7 +23,7 @@ function call(args, files) {
     return result;
 }
 
-['sqlserver', 'snowflake', 'postgresql', 'vertica'].forEach(function (database) {
+['sqlserver', 'snowflake', 'postgresql', 'vertica', 'bigquery'].forEach(function (database) {
     var generator = load(database);
     var starter = call([database, '--starter'], {});
     check(database + ': a starter model', starter.code === 0 && starter.out.indexOf('<schema ') === 0, starter.err);
@@ -40,7 +40,7 @@ function call(args, files) {
 });
 
 var unknown = call(['oracle', 'm.xml'], {});
-check('an unknown database is exit 2', unknown.code === 2 && /sqlserver, snowflake, postgresql, vertica/.test(unknown.err), unknown.err);
+check('an unknown database is exit 2', unknown.code === 2 && /sqlserver, snowflake, postgresql, vertica, bigquery/.test(unknown.err), unknown.err);
 check('no arguments is exit 2 with usage', call([], {}).code === 2);
 
 console.log(passed + ' passed, ' + failed + ' failed.');

@@ -42,6 +42,8 @@ INSERT INTO "{AN}_KOD_{AnchorDesc}_Code" ("{AN}_KOD_{AN}_ID", "{AN}_KOD_{AnchorD
 SELECT "{AN}_ID", natural_key, {md} FROM {an}_new;
 ```
 
+**A database without sequences (BigQuery)** draws the ids itself: `COALESCE((SELECT max("{AN}_ID") FROM "{AN}_{AnchorDesc}"), 0) + ROW_NUMBER() OVER (ORDER BY k.natural_key)` in place of the sequence call. That is safe only while one load at a time writes the anchor (the same holds for knots, nexuses and, in bi and crt, the identity of every posit and tie): say so, and serialize the loads. Where the platform has identity columns (BigQuery has them in Preview), they replace this.
+
 When the model has a **key route** (`targets.md`: natural key views), use the key view `key_{AN}_{AnchorDesc}_{route}` instead of the identifier table in the `NOT EXISTS` and in every mapping of source rows to ids, matching every value of the key, and load the anchors that the key reaches first.
 
 **Static attributes**: insert only for owners without a row, mapping the source through the identifier:
