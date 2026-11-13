@@ -6,12 +6,14 @@
 //   node run.js <database> --metadata                   the <metadata .../> element of a new model
 //   node run.js --list                                  the databases, and their temporalizations
 //
-// <database> is sqlserver, snowflake, postgresql or vertica (any case; "postgres" and "mssql" work too).
+// <database> is sqlserver, snowflake, postgresql, vertica, bigquery or oracle (any case; "postgres" and "mssql" work too).
 // Exit code 0 when it worked, 1 when the model is wrong, 2 when it was used wrongly.
 // Without Node, load anchor-generator-<database>.js in any ES5 engine instead (references/generator.md).
 
-var DATABASES = ['sqlserver', 'snowflake', 'postgresql', 'vertica'];
-var ALIASES = { mssql: 'sqlserver', sql: 'sqlserver', postgres: 'postgresql', pg: 'postgresql' };
+var DATABASES = ['sqlserver', 'snowflake', 'postgresql', 'vertica', 'bigquery', 'oracle'];
+var ALIASES = { mssql: 'sqlserver', sql: 'sqlserver', postgres: 'postgresql', pg: 'postgresql', bq: 'bigquery', ora: 'oracle' };
+// the data type of text, which is not one of the generator's defaults: BigQuery has no varchar, Oracle has varchar2
+var TEXT_TYPE = { bigquery: 'string(42)', oracle: 'varchar2(42)' };
 
 function normalize(name) {
     var key = String(name).toLowerCase().replace(/[^a-z]/g, '');
@@ -21,19 +23,20 @@ function normalize(name) {
 // A small, complete model for a database: its metadata, a knot, an anchor with a historized and a knotted attribute, and an identifier.
 function starter(generator) {
     var d = generator.defaults();
+    var text = TEXT_TYPE[generator.target.toLowerCase()] || 'varchar(42)';
     var schema = d.encapsulation;
     return [
         '<schema format="0.101.2">',
         generator.metadataElement(),
-        '<knot mnemonic="GEN" descriptor="Gender" identity="' + d.identity + '" dataRange="varchar(42)">',
+        '<knot mnemonic="GEN" descriptor="Gender" identity="' + d.identity + '" dataRange="' + text + '">',
         '<metadata capsule="' + schema + '" generator="false"/>',
         '</knot>',
         '<anchor mnemonic="AC" descriptor="Actor" identity="' + d.identity + '">',
         '<metadata capsule="' + schema + '" generator="true"/>',
-        '<attribute mnemonic="KOD" descriptor="Code" dataRange="varchar(42)">',
+        '<attribute mnemonic="KOD" descriptor="Code" dataRange="' + text + '">',
         '<metadata capsule="' + schema + '"/>',
         '</attribute>',
-        '<attribute mnemonic="NAM" descriptor="Name" timeRange="' + d.changingRange + '" dataRange="varchar(42)">',
+        '<attribute mnemonic="NAM" descriptor="Name" timeRange="' + d.changingRange + '" dataRange="' + text + '">',
         '<metadata capsule="' + schema + '"/>',
         '</attribute>',
         '<attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN">',

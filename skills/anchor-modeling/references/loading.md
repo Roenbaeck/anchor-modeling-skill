@@ -4,7 +4,7 @@
 
 Say which of the two routes the user's database takes (`targets.md`), and keep to it.
 
-## Route A: through the latest views (SQL Server, PostgreSQL)
+## Route A: through the latest views (SQL Server, PostgreSQL, Oracle)
 
 The latest views of anchors, nexuses and ties have triggers, so a load is plain `INSERT`, `UPDATE` and `DELETE` against `l{AN}_{Desc}`. Every statement is turned into new rows:
 
@@ -13,6 +13,8 @@ The latest views of anchors, nexuses and ties have triggers, so a load is plain 
 - A **static** attribute or tie takes a value once; another value is an error (a contradiction) in uni, and a correction in bi and crt.
 - **Null** retracts the shown version in bi and crt; in uni it does nothing, except for a deletable attribute whose deletable column is set in the same update, which moves the history to a deletion table.
 - A **delete** retracts (bi, crt) or removes (uni) the shown versions.
+
+In **Oracle** the latest views have `INSTEAD OF` triggers that run a row at a time, and the rules of an attribute or a tie (contradiction, restatement, idempotency, retraction) are in procedures `ip_<attribute>` and `ip_<tie>` that the triggers call and a load can call too (named parameters; the signature is in a comment at the top of the file that makes them). A row put straight into an attribute table with `INSERT` is not looked at, so load through the views or the procedures, or use route B's filters.
 
 Map source rows to identities through the **identifier attribute** (a static attribute with the natural key): insert the missing anchors with their identifier first, then load the other attributes by joining the source to the identifier. The triggers' rules (restatements, idempotency, corrections, what a retraction is) are in the Anchor repository, `docs/ANCHOR.md`, *Loading through the latest views*. In PostgreSQL, a statement that sets a changing time to what it already is must be an insert into the assembled view of the attribute or tie instead of an update.
 
@@ -41,6 +43,8 @@ INSERT INTO "{AN}_{AnchorDesc}" ("{AN}_ID", "Metadata_{AN}") SELECT "{AN}_ID", {
 INSERT INTO "{AN}_KOD_{AnchorDesc}_Code" ("{AN}_KOD_{AN}_ID", "{AN}_KOD_{AnchorDesc}_Code", "Metadata_{AN}_KOD")
 SELECT "{AN}_ID", natural_key, {md} FROM {an}_new;
 ```
+
+**A database without sequences (BigQuery)** draws the ids itself: `COALESCE((SELECT max("{AN}_ID") FROM "{AN}_{AnchorDesc}"), 0) + ROW_NUMBER() OVER (ORDER BY k.natural_key)` in place of the sequence call. That is safe only while one load at a time writes the anchor (the same holds for knots, nexuses and, in bi and crt, the identity of every posit and tie): say so, and serialize the loads. Where the platform has identity columns (BigQuery has them in Preview), they replace this.
 
 When the model has a **key route** (`targets.md`: natural key views), use the key view `key_{AN}_{AnchorDesc}_{route}` instead of the identifier table in the `NOT EXISTS` and in every mapping of source rows to ids, matching every value of the key, and load the anchors that the key reaches first.
 

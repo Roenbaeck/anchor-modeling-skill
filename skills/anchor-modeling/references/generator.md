@@ -11,7 +11,9 @@ In `generators/`, next to this skill's other files:
 | `anchor-generator-sqlserver.js` | SQL Server | uni, bi, crt |
 | `anchor-generator-snowflake.js` | Snowflake | uni, bi, crt |
 | `anchor-generator-postgresql.js` | PostgreSQL | uni, bi, crt |
-| `anchor-generator-vertica.js` | Vertica | bi, crt |
+| `anchor-generator-vertica.js` | Vertica | uni, bi, crt |
+| `anchor-generator-bigquery.js` | BigQuery | uni, bi, crt |
+| `anchor-generator-oracle.js` | Oracle | uni, crt |
 
 Other databases have no file: see `targets.md`. **Never read a generator file into the conversation**: each is 0.2 to 1.1 MB. Run it, and work with its output in files.
 
@@ -71,7 +73,7 @@ Write the model to a file and the script to a file. A script is hundreds of kilo
 
 - `The model has N problems, so nothing was generated:` followed by a list. Each line says where (`anchor AC, attribute NAM:`) and what. Correct the model and run again. The list is complete, so most models need one round.
 - `XML, line L column C: ...`: the XML is not well formed.
-- `The temporalization has to be one of ... for <database>`: that database has no such generator file (Vertica has no `uni`).
+- `The temporalization has to be one of ... for <database>`: that database has no such generator file (no database has a file for every temporalization of the model that the modeler can make; `AnchorGenerator.temporalizations` lists what the file has).
 - An error that does not look like a problem with the model, or a script that contains the text `undefined`: a defect in the generator. Do not run the script, and report it with the model that causes it at `https://github.com/Roenbaeck/anchor/issues`.
 
 ## Running the script
@@ -84,6 +86,8 @@ A script has several statements and, for most databases, bodies of functions and
 | PostgreSQL | `psql -f script.sql` | functions are in `$$ ... $$` |
 | Snowflake | `snow sql -f script.sql --enable-templating NONE`, or the worksheet | the Snowflake CLI otherwise reads `&` as a variable and changes the text; functions are in `$$ ... $$` |
 | Vertica | `vsql -f script.sql` | not run on a server by the generator's authors: `targets.md` |
+| BigQuery | `bq query --use_legacy_sql=false < script.sql`, or the console | one statement at a time in the console; not run on BigQuery by the generator's authors: `targets.md` |
+| Oracle | `sqlplus user/password@service @script.sql` (or SQLcl `sql user/password@service @script.sql`) | the script has PL/SQL blocks that end with a `/` line, which these clients understand; a client that splits on `;` fails. Not run on a server by the generator's authors: `targets.md`. Run `tools/oracle-tests/deploy.sql` of the sisula repository afterwards to list what is invalid |
 
 If the host runs SQL through a tool that takes one statement, split the script on `;` that is **outside** `$$ ... $$` and outside `BEGIN ... END`, and on `GO` lines for SQL Server, and run the statements in order. Run it in an empty schema or a scratch database first. **If a statement fails, stop and show the user the statement and the message; do not edit generated SQL to get past it.**
 

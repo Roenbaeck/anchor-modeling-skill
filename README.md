@@ -4,7 +4,7 @@ An agent skill for [Anchor Modeling](https://www.anchormodeling.com/) that works
 
 - **Reverse-engineer** an existing database or files into an Anchor model
 - **Design** a model with the user, by asking about the domain in plain words and confirming sentences and examples, not diagrams
-- **Generate** the DDL: knots, anchors, nexuses, attributes, ties, perspectives and triggers, for uni-, bi- and concurrent-reliance-temporal models, with the bundled generator (SQL Server, Snowflake, PostgreSQL, Vertica), or by hand for a uni-temporal model on any other database
+- **Generate** the DDL: knots, anchors, nexuses, attributes, ties, perspectives and triggers, for uni-, bi- and concurrent-reliance-temporal models, with the bundled generator (SQL Server, Snowflake, PostgreSQL, Vertica, BigQuery, Oracle), or by hand for a uni-temporal model on any other database
 - **Load** data incrementally and idempotently, and roll a batch back
 - **Query** a model through its perspectives, **extend** it without altering existing tables, and **explain** it
 
@@ -65,8 +65,9 @@ The files are generated, not written: `tools/build-portable-generator.ps1` in th
 | SQL Server | uni, bi, crt | yes |
 | Snowflake | uni, bi, crt | yes |
 | PostgreSQL | uni, bi, crt | yes (PostgreSQL 16) |
-| Vertica | bi, crt | no |
-| BigQuery, Oracle | none (the modeler generates them) | no |
+| Vertica | uni, bi, crt | no |
+| BigQuery | uni, bi, crt | no |
+| Oracle | uni, crt (Oracle Database 19.7 or later) | no: parsed with a PL/SQL grammar and cross-checked, never run |
 | any other | none: by hand (uni), or adapt the closest generator | no |
 
 ## Requirements

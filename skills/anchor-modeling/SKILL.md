@@ -1,6 +1,6 @@
 ---
 name: anchor-modeling
-description: "Anchor Modeling on any SQL database, with any agent: reverse-engineer an existing database or files into an Anchor model, design a model with the user, generate its DDL (SQL Server, Snowflake, PostgreSQL and Vertica with the bundled generator, other databases by adapting), load data incrementally, query through perspectives, extend a model, or explain it. Use for ALL requests about Anchor Modeling. Triggers: anchor model, anchor modeling, 6NF, sixth normal form, anchor table, historized attribute, knot table, tie table, nexus table, perspective view, temporal model, bitemporal, uni-temporal, reverse engineer to anchor, create anchor model, generate anchor DDL."
+description: "Anchor Modeling on any SQL database, with any agent: reverse-engineer an existing database or files into an Anchor model, design a model with the user, generate its DDL (SQL Server, Snowflake, PostgreSQL, Vertica, BigQuery and Oracle with the bundled generator, other databases by adapting), load data incrementally, query through perspectives, extend a model, or explain it. Use for ALL requests about Anchor Modeling. Triggers: anchor model, anchor modeling, 6NF, sixth normal form, anchor table, historized attribute, knot table, tie table, nexus table, perspective view, temporal model, bitemporal, uni-temporal, reverse engineer to anchor, create anchor model, generate anchor DDL."
 license: MIT
 compatibility: "Needs nothing but the ability to read this folder. Better with a way to run JavaScript (Node, Deno, Bun or any ES5 engine) for the generator, and a way to run SQL on the target database; without them the skill hands the work to the user."
 ---
@@ -106,7 +106,7 @@ Load `references/constructs.md` and `references/modeling-practice.md`.
 Load `references/targets.md` for the database, then:
 
 - **The database has a generator file and you can run JavaScript:** load `references/generator.md` and `references/model-xml.md`. Write the model XML from the approved design, starting from `AnchorGenerator.metadataElement()`, run `check` and then `generate`, and present the script. It is the same text as the Anchor Modeler's *Generate SQL*, for uni, bi and crt.
-- **No generator file** (BigQuery, Oracle, and anything else) **or no way to run it:** for a uni-temporal model use `references/by-hand.md`, adapted to the database with `targets.md`, and say that the script is hand-written and has not been checked by the generator. For bi and crt, tell the user that the generator is needed, and how to get the script from the Anchor Modeler; ask before improvising.
+- **No generator file** (a database that is not listed in `references/generator.md`) **or no way to run it:** for a uni-temporal model use `references/by-hand.md`, adapted to the database with `targets.md`, and say that the script is hand-written and has not been checked by the generator. For bi and crt, tell the user that the generator is needed, and how to get the script from the Anchor Modeler; ask before improvising.
 
 If `check` or `generate` says the model has problems, correct the model as the list says and run it again. Never run a script from a call that failed.
 
