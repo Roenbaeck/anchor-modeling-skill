@@ -13,8 +13,9 @@ In `generators/`, next to this skill's other files:
 | `anchor-generator-postgresql.js` | PostgreSQL | uni, bi, crt |
 | `anchor-generator-vertica.js` | Vertica | uni, bi, crt |
 | `anchor-generator-bigquery.js` | BigQuery | uni, bi, crt |
+| `anchor-generator-oracle.js` | Oracle | uni, crt |
 
-Other databases have no file (Oracle has generators in the modeler that are not fit to run): see `targets.md`. **Never read a generator file into the conversation**: each is 0.2 to 1.1 MB. Run it, and work with its output in files.
+Other databases have no file: see `targets.md`. **Never read a generator file into the conversation**: each is 0.2 to 1.1 MB. Run it, and work with its output in files.
 
 A file is plain ES5. It has no dependencies and uses no file system, network or browser. It defines one object, `AnchorGenerator` (also `module.exports` where there is a module system):
 
@@ -85,8 +86,8 @@ A script has several statements and, for most databases, bodies of functions and
 | PostgreSQL | `psql -f script.sql` | functions are in `$$ ... $$` |
 | Snowflake | `snow sql -f script.sql --enable-templating NONE`, or the worksheet | the Snowflake CLI otherwise reads `&` as a variable and changes the text; functions are in `$$ ... $$` |
 | Vertica | `vsql -f script.sql` | not run on a server by the generator's authors: `targets.md` |
-| BigQuery | the console, or `bq query --use_legacy_sql=false` with the script on standard input | not run on BigQuery by the generator's authors: `targets.md`; a dataset has to exist (the script makes it) |
 | BigQuery | `bq query --use_legacy_sql=false < script.sql`, or the console | one statement at a time in the console; not run on BigQuery by the generator's authors: `targets.md` |
+| Oracle | `sqlplus user/password@service @script.sql` (or SQLcl `sql user/password@service @script.sql`) | the script has PL/SQL blocks that end with a `/` line, which these clients understand; a client that splits on `;` fails. Not run on a server by the generator's authors: `targets.md`. Run `tools/oracle-tests/deploy.sql` of the sisula repository afterwards to list what is invalid |
 
 If the host runs SQL through a tool that takes one statement, split the script on `;` that is **outside** `$$ ... $$` and outside `BEGIN ... END`, and on `GO` lines for SQL Server, and run the statements in order. Run it in an empty schema or a scratch database first. **If a statement fails, stop and show the user the statement and the message; do not edit generated SQL to get past it.**
 

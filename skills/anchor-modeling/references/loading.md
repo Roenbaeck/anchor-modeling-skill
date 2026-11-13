@@ -4,7 +4,7 @@
 
 Say which of the two routes the user's database takes (`targets.md`), and keep to it.
 
-## Route A: through the latest views (SQL Server, PostgreSQL)
+## Route A: through the latest views (SQL Server, PostgreSQL, Oracle)
 
 The latest views of anchors, nexuses and ties have triggers, so a load is plain `INSERT`, `UPDATE` and `DELETE` against `l{AN}_{Desc}`. Every statement is turned into new rows:
 
@@ -13,6 +13,8 @@ The latest views of anchors, nexuses and ties have triggers, so a load is plain 
 - A **static** attribute or tie takes a value once; another value is an error (a contradiction) in uni, and a correction in bi and crt.
 - **Null** retracts the shown version in bi and crt; in uni it does nothing, except for a deletable attribute whose deletable column is set in the same update, which moves the history to a deletion table.
 - A **delete** retracts (bi, crt) or removes (uni) the shown versions.
+
+In **Oracle** the latest views have `INSTEAD OF` triggers that run a row at a time, and the rules of an attribute or a tie (contradiction, restatement, idempotency, retraction) are in procedures `ip_<attribute>` and `ip_<tie>` that the triggers call and a load can call too (named parameters; the signature is in a comment at the top of the file that makes them). A row put straight into an attribute table with `INSERT` is not looked at, so load through the views or the procedures, or use route B's filters.
 
 Map source rows to identities through the **identifier attribute** (a static attribute with the natural key): insert the missing anchors with their identifier first, then load the other attributes by joining the source to the identifier. The triggers' rules (restatements, idempotency, corrections, what a retraction is) are in the Anchor repository, `docs/ANCHOR.md`, *Loading through the latest views*. In PostgreSQL, a statement that sets a changing time to what it already is must be an insert into the assembled view of the attribute or tie instead of an update.
 

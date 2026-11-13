@@ -6,14 +6,14 @@
 //   node run.js <database> --metadata                   the <metadata .../> element of a new model
 //   node run.js --list                                  the databases, and their temporalizations
 //
-// <database> is sqlserver, snowflake, postgresql, vertica or bigquery (any case; "postgres" and "mssql" work too).
+// <database> is sqlserver, snowflake, postgresql, vertica, bigquery or oracle (any case; "postgres" and "mssql" work too).
 // Exit code 0 when it worked, 1 when the model is wrong, 2 when it was used wrongly.
 // Without Node, load anchor-generator-<database>.js in any ES5 engine instead (references/generator.md).
 
-var DATABASES = ['sqlserver', 'snowflake', 'postgresql', 'vertica', 'bigquery'];
-var ALIASES = { mssql: 'sqlserver', sql: 'sqlserver', postgres: 'postgresql', pg: 'postgresql', bq: 'bigquery' };
-// the data type of text, which is not one of the generator's defaults: BigQuery has no varchar
-var TEXT_TYPE = { bigquery: 'string(42)' };
+var DATABASES = ['sqlserver', 'snowflake', 'postgresql', 'vertica', 'bigquery', 'oracle'];
+var ALIASES = { mssql: 'sqlserver', sql: 'sqlserver', postgres: 'postgresql', pg: 'postgresql', bq: 'bigquery', ora: 'oracle' };
+// the data type of text, which is not one of the generator's defaults: BigQuery has no varchar, Oracle has varchar2
+var TEXT_TYPE = { bigquery: 'string(42)', oracle: 'varchar2(42)' };
 
 function normalize(name) {
     var key = String(name).toLowerCase().replace(/[^a-z]/g, '');
