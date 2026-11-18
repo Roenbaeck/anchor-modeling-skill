@@ -13,7 +13,7 @@ Anchor Modeling is a database design technique that decomposes a domain into six
 
 Reference files. Load each one when a step says so, not all up front:
 
-- `references/constructs.md`: the theory and the construct definitions.
+- `references/constructs.md`: the theory and the construct definitions, and the design guidelines (when to historize, knot, tie, or use a state).
 - `references/modeling-practice.md`: how to ask the user about the domain, what to check before presenting a model, and how to present it. Load it at R1, R2, G1, G2 and E2.
 - `references/model-xml.md`: the model XML, how to write it, and what the generator checks.
 - `references/generator.md`: the generator (`generators/anchor-generator-<database>.js`): what it is, and every way to run it. Load it when generating DDL.
@@ -22,11 +22,11 @@ Reference files. Load each one when a step says so, not all up front:
 - `references/loading.md`: incremental, idempotent loads, and how to roll one back.
 - `references/naming-conventions.md`: the names of everything the model generates.
 - `references/metadata.md`: what the Metadata column is for, and batch tracking.
-- `references/time.md`: the three kinds of time (changing, happening, recording), how to represent a time, where the times of a load come from, and what to do when a source has none. Load it at R1, G1, G2, L1 and when a question is about *when* or *as of*.
+- `references/time.md`: the three kinds of time (changing, happening, recording), how to represent a time, where the times of a load come from, corrections, retractions and reliability in bi and crt, and what to do when a source has none. Load it at R1, G1, G2, L1 and when a question is about *when* or *as of*.
 - `references/identity-and-keys.md`: surrogate identities, why not to hash natural keys, changing keys, early and late identity management. Load it at R2, G2 and L1.
 - `references/constraints.md`: rules beyond the keys (a value that must be unique, a combination that must not repeat), which have to hold in every time slice. Load it when the user states such a rule.
-- `references/performance.md`: why narrow tables are fast and what it depends on, views over history, as-of joins over many dates. Load it when a query is slow or a load is large.
-- `references/warehouse-practice.md`: where the model fits (landing zone, model, semantic layer; no persisted layers between), loading discipline, and how an agent should answer questions over the model. Load it when asked about layers, marts, or how to query the model with an agent.
+- `references/performance.md`: when narrow tables win and when not, why they are fast and what it depends on, views over history, as-of joins over many dates, temporal dimensions. Load it when a query is slow or a load is large.
+- `references/warehouse-practice.md`: where the model fits (landing zone, model, semantic layer; no persisted layers between), a mapping from Data Vault, loading discipline, and how an agent should answer questions over the model. Load it when asked about layers, marts, or how to query the model with an agent.
 
 ### What can you do here?
 
