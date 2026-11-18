@@ -18,7 +18,7 @@ For Snowflake with Cortex Code there is also [anchor-snowflake-skill](https://gi
 skills/anchor-modeling/
   SKILL.md                  entry point: what the agent can do here, intent detection, step-by-step workflows
   references/
-    constructs.md           the theory and the construct definitions
+    constructs.md           the theory, the construct definitions and the design guidelines
     modeling-practice.md    how to ask about the domain, what to check, how to present a model
     model-xml.md            the model XML, how to write it, and what the generator checks
     generator.md            the generator and every way to run it
@@ -27,11 +27,18 @@ skills/anchor-modeling/
     loading.md              incremental, idempotent loads (through triggers, or into the tables)
     naming-conventions.md   the names of everything a model generates
     metadata.md             the Metadata column, batch tracking and rollback
+    time.md                 changing, happening and recording time; UTC and precision; where the times of a load come from; corrections, retractions and reliability
+    identity-and-keys.md    surrogate identities, why not to hash keys, changing keys, early and late identity management
+    constraints.md          rules beyond the keys, which must hold in every time slice (triggers, or violation queries)
+    performance.md          when narrow tables win, table elimination, views over history, as-of joins (the twine), temporal dimensions, massively parallel databases
+    warehouse-practice.md   where the model fits (no layers between landing zone and model), coming from Data Vault, loading discipline, agents querying it
   generators/
     anchor-generator-sqlserver.js      the Anchor generator, one self-contained ES5 file per database
     anchor-generator-snowflake.js
     anchor-generator-postgresql.js
     anchor-generator-vertica.js
+    anchor-generator-bigquery.js
+    anchor-generator-oracle.js
     run.js                             a command-line wrapper for Node
 ```
 
