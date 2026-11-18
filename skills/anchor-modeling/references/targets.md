@@ -37,7 +37,7 @@ To write a type for another database, `AnchorGenerator.defaults()` shows the dat
 ## How each database loads
 
 - **SQL Server and PostgreSQL** have triggers on the latest views of anchors, nexuses and ties, so data can be loaded with plain `INSERT`, `UPDATE` and `DELETE` against `l...` views, and every statement is turned into new rows (`loading.md`). A load may also insert straight into the tables; the triggers on the attribute and tie tables of the uni-temporal model reject a contradiction or a restatement the model forbids. PostgreSQL's triggers run for each row and see that a column has another value than before, not what the `SET` list was.
-- **Snowflake, Vertica, BigQuery and any database without triggers** load into the tables, and **every insert filters out what exists** (`loading.md`). Snowflake and BigQuery enforce nothing but `NOT NULL` (BigQuery's keys are declared `NOT ENFORCED`): run `SELECT * FROM IntegrityViolations` after a load. BigQuery has no sequences, so the load draws ids itself (the maximum so far plus a row number, within one load that is the only writer, or a key it can derive); `loading.md` shows the sequence form, which has to be written that way for BigQuery.
+- **Snowflake, Vertica, BigQuery and any database without triggers** load into the tables (`loading.md`). On standard Snowflake tables, `NOT NULL` and `CHECK` are enforced, but PK/UNIQUE/FK are not. BigQuery declares its keys `NOT ENFORCED`. Validate sources and check `IntegrityViolations` before publishing. BigQuery has no sequences, so the load draws IDs itself (the maximum so far plus a row number with one writer, or a key it can derive); see `loading.md`.
 
 ## Other databases
 
