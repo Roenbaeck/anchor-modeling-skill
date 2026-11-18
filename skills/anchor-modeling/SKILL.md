@@ -7,7 +7,7 @@ compatibility: "Needs nothing but the ability to read this folder. Better with a
 
 # Anchor Modeling
 
-Anchor Modeling is a database design technique that decomposes a domain into sixth-normal-form tables: identity tables (anchors), single-property tables (attributes), lookup tables (knots), relationship tables (ties) and event tables (nexuses). A model only ever grows, by adding tables; history is kept by adding rows. This skill covers the whole lifecycle on any SQL database and is written for any agent: it names no tool of any host, only what you need to be able to do.
+Anchor Modeling is a database design technique that decomposes a domain into sixth-normal-form tables, except where a relationship must be recorded as a whole: identity tables (anchors), single-property tables (attributes), lookup tables (knots), relationship tables (ties) and event tables (nexuses). A model can grow by adding tables; history is kept by adding rows. This skill covers the whole lifecycle on any SQL database and is written for any agent: it names no tool of any host, only what you need to be able to do.
 
 ## Setup
 
@@ -22,7 +22,7 @@ Reference files. Load each one when a step says so, not all up front:
 - `references/loading.md`: incremental, idempotent loads, and how to roll one back.
 - `references/naming-conventions.md`: the names of everything the model generates.
 - `references/metadata.md`: what the Metadata column is for, and batch tracking.
-- `references/time.md`: the three kinds of time (changing, happening, recording), how to represent a time, where the times of a load come from, corrections, retractions and reliability in bi and crt, and what to do when a source has none. Load it at R1, G1, G2, L1 and when a question is about *when* or *as of*.
+- `references/time.md`: changing, assertion, recording, happening and structuring time; timestamp sources and proxies; corrections, retractions and reliability. Load it at R1, G1, G2, L1 and when a question is about *when* or *as of*.
 - `references/identity-and-keys.md`: surrogate identities, why not to hash natural keys, changing keys, early and late identity management. Load it at R2, G2 and L1.
 - `references/constraints.md`: rules beyond the keys (a value that must be unique, a combination that must not repeat), which have to hold in every time slice. Load it when the user states such a rule.
 - `references/performance.md`: when narrow tables win and when not, why they are fast and what it depends on, views over history, as-of joins over many dates, temporal dimensions. Load it when a query is slow or a load is large.
@@ -68,11 +68,11 @@ Say which of these you found, in a sentence, before the first step.
 
 Load `references/constructs.md`, `references/modeling-practice.md` and `references/identity-and-keys.md`.
 
-- Each entity with a surrogate or natural key → **anchor** (2-letter mnemonic). The identity is a new sequence number; the source's key is data about it (the identifier attribute), never a hash standing in for it.
-- **Every anchor has at least one identifier attribute**: a static attribute that holds the source's natural key. Without it a load cannot map source rows to surrogate ids. A nexus needs one too, for the source key of the event.
+- A thing with a persistent identity → **anchor** (2-letter mnemonic). Give it a surrogate identity; a source key is a way to find it, never a hash standing in for it.
+- For recurring loads of anchors and nexuses, settle the identity match: a static identifier attribute for one stable value, a key route over the model (possibly historized), or a trusted upstream mapping. Confirm source scope, reuse and ambiguity (`references/identity-and-keys.md`).
 - Each column → **attribute** (3-letter mnemonic). Static or historized: a snapshot shows nothing about change, so ask which properties change, in the user's words.
-- A column that references a small lookup list → **knot** and a knotted attribute. If a dimension has both a code and a description and both are needed, make it an anchor with a code attribute and a historized description attribute.
-- Each foreign key or join table → **tie**; cardinality from the keys. A join table with properties of its own, or events → **nexus**.
+- A value from a shared, stable domain can use a **knot**. If the lookup item needs separately modeled properties, such as a code and a description, use an anchor; historize the properties whose history matters.
+- Foreign keys and join tables are evidence for **ties**; confirm cardinality with the user. An independently identifiable happening can be a **nexus** when its roles are required and stable. Keep optional or independently changing participants in separate ties.
 
 Present the model as the practice file says (*Presenting the model*): sentences in the user's words, examples with the case the model does not allow, assumptions, open questions with your proposed answers, and then the table of constructs.
 
@@ -91,7 +91,7 @@ Go to [G3](#g3-generate-the-ddl) with the approved model.
 Load `references/modeling-practice.md`, and `references/time.md` for the questions about history and dates.
 
 1. Ask the user to describe the domain: the main things, what they know about each, how they relate. Use any document, spreadsheet or system they point at, and test what you read in it against the data.
-2. Work out what they have not settled: what has an identity and how two are told apart, which properties change and whose history is wanted, which values come from a short fixed list, how many of one relate to how many of another, which relationships are happenings with details of their own, and whether the model must tell what was true from what was known (uni, bi, crt).
+2. Work out what they have not settled: what has an identity and how two are told apart, which properties change and whose history is wanted, which values are a stable shared set, how many of one relate to how many of another, which relationships are happenings with details of their own, and whether to distinguish what was in effect, what someone believed, and what the warehouse had received.
 3. Ask about those as the practice file says: in the user's words, an example from their domain and your own guess in each question, the costliest first, at most five in a round. Assume the cheap ones and say so.
 
 **⚠️ STOP**: Confirm the understanding of the domain, as sentences, before designing.
@@ -139,9 +139,9 @@ Load `references/naming-conventions.md`. Ask which database and schema hold the 
 
 ### Q2: Write the query
 
-- Current state: the **latest** perspective (`lXX_…`), a view that joins the pieces. Point in time: the **point-in-time** perspective (`pXX_…(timestamp)`, a function). Change tracking: the **difference** perspective (`dXX_…(from, to)`). A simple lookup: the tables.
+- In effect now: `nXX_…` or `pXX_…(now)` where available. `lXX_…` has no changing-time cutoff and may show future-effective data. Use `pXX_…(timestamp)` for a chosen changing time and `dXX_…(from, to)` for changes. For an assertion cutoff as well, inspect the `t` signature and select the positor in crt.
 - Explain what the perspective joins. Pass timestamps in UTC. `targets.md` says which perspectives each database has and how to call them.
-- **Define the question before you answer it** (`references/warehouse-practice.md`, *When an agent or a tool queries the model*): *as of when*, by which definition, counting which identity. Say which of "what was true then" and "what did we know then" the answer is (`references/time.md`).
+- **Define the question before you answer it** (`references/warehouse-practice.md`, *When an agent or a tool queries the model*): what was in effect, what someone believed, or what had been received or published (`references/time.md`). A changing-time filter resolves versions; for a historical count, also filter on the domain facts that make an identity exist or qualify then.
 - A slow query, or a lookup of what was in effect at many dates: load `references/performance.md`.
 
 ---
@@ -156,7 +156,7 @@ Find the model (as in Q1) and ask what to add: an anchor, attribute, knot, tie o
 
 Load `references/constructs.md`, `references/naming-conventions.md` and `references/modeling-practice.md`. A new construct raises the same questions of meaning as a new model (a thing or a property, how many relate, does it change), asked and confirmed the same way.
 
-- A new attribute: a 3-letter mnemonic not yet used on that anchor. A new anchor or nexus: a 2-letter mnemonic not yet used in the model, and an identifier attribute. A new tie: from the existing mnemonics and role names.
+- A new attribute: a 3-letter mnemonic not yet used on that anchor. A new anchor or nexus: a 2-letter mnemonic not yet used in the model, and an identity matching plan if it will be loaded repeatedly. A new tie: from the existing mnemonics and role names.
 - Generate DDL for the new objects **and the perspectives they change**. With the generator, add the construct to the model XML and generate again: it makes the whole script, and the objects that exist are left as they are by `IF NOT EXISTS` (or the database's form of it, `targets.md`). A name that already exists with another structure is compared, and the difference reported, not assumed away.
 
 **⚠️ STOP**: Approval of the extension DDL.
@@ -177,13 +177,13 @@ Load `references/constraints.md` and `references/modeling-practice.md`. Ask what
 
 ### C2: Design the check
 
-Choose the mechanism for the database (`references/constraints.md`): an AFTER INSERT trigger on the table that can break the rule, which checks the point-in-time perspective at the inserted rows' times; or, where there are no triggers, a violation query that every load runs. Write it as its own script next to the model XML, **not** into the generated SQL. Say which parts have been run on the user's database and which have not (the file says which patterns were checked).
+Choose the mechanism for the database (`references/constraints.md`): a trigger or a load-time violation query. Check affected intervals or all their boundaries, not only the inserted rows' timestamps. Write it as its own script next to the model XML, **not** into the generated SQL. Say which parts have been run on the user's database and which have not.
 
 **⚠️ STOP**: Approval of the check.
 
 ### C3: Apply and test
 
-Run it, then try three inserts: one that must pass, one that must be refused, and one that reuses a value after it stopped being in effect (passes). Report what happened.
+In a scratch schema, test an insert that must pass, an equal-start conflict, a backfill whose conflict starts later, and legitimate reuse at the preceding interval's exclusive end. Report whether the mechanism refused or flagged each case.
 
 ---
 
@@ -193,13 +193,13 @@ Load `references/loading.md`, `references/naming-conventions.md`, `references/me
 
 ### L1: Plan the load
 
-A load is **incremental and idempotent**: it appends what is new or changed and never truncates, so running it twice with the same data changes nothing. Say which way the user's database loads (`targets.md`): through the latest views with triggers (SQL Server, PostgreSQL), or into the tables with every insert guarded (Snowflake, Vertica, and any database without triggers). Plan the order from the dependencies: knots, then anchors and nexuses and their identifier attributes, then the other attributes and the ties.
+A recurring load is **incremental and idempotent**. Classify the input as ordered snapshots or timestamped changes (including backfills), and plan for replay, same-time conflicts and late arrivals (`references/loading.md`). Choose the database's load route (`targets.md`) and order tasks by their actual dependencies, including identity lookup routes.
 
 **⚠️ STOP**: Present the plan, the order and the load SQL for approval.
 
 ### L2: Run and verify
 
-Run it as the user's scheduler or orchestrator does (`references/loading.md` says what the common ones need). Verify with row counts and the integrity checks of the database (`targets.md`). A full rebuild destroys history: run a truncate only after explicit confirmation.
+Run it as the user's scheduler or orchestrator does. Verify task execution, row counts and integrity before publishing the batch (`references/metadata.md`). A full rebuild destroys history: run a truncate only after explicit confirmation.
 
 ---
 
@@ -207,7 +207,7 @@ Run it as the user's scheduler or orchestrator does (`references/loading.md` say
 
 ### X1: Explain
 
-Load `references/constructs.md`, and `references/time.md` for anything about history, and `references/warehouse-practice.md` for where the model fits. Cover the concept asked about with an example from the user's domain or the one in `references/constructs.md`, and: why Anchor Modeling (no `ALTER TABLE`, history built in, narrow tables), when to use what (anchor or knot, tie or nexus, static or historized), and the perspectives (latest for dashboards, point-in-time for audits, difference for changes).
+Load `references/constructs.md`, and `references/time.md` for anything about history, and `references/warehouse-practice.md` for where the model fits. Cover the concept asked about with an example from the user's domain or the one in `references/constructs.md`, and: why Anchor Modeling (extension by adding tables, history where needed, narrow tables), when to use what (anchor or knot, tie or nexus, static or historized), and the perspectives (now, latest, point-in-time, difference, and time-traveling where supported).
 
 ---
 

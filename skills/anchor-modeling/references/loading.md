@@ -16,11 +16,11 @@ The latest views of anchors, nexuses and ties have triggers, so a load is plain 
 
 In **Oracle** the latest views have `INSTEAD OF` triggers that run a row at a time, and the rules of an attribute or a tie (contradiction, restatement, idempotency, retraction) are in procedures `ip_<attribute>` and `ip_<tie>` that the triggers call and a load can call too (named parameters; the signature is in a comment at the top of the file that makes them). A row put straight into an attribute table with `INSERT` is not looked at, so load through the views or the procedures, or use route B's filters.
 
-Map source rows to identities through the **identifier attribute** (a static attribute with the natural key): insert the missing anchors with their identifier first, then load the other attributes by joining the source to the identifier. The triggers' rules (restatements, idempotency, corrections, what a retraction is) are in the Anchor repository, `docs/ANCHOR.md`, *Loading through the latest views*. In PostgreSQL, a statement that sets a changing time to what it already is must be an insert into the assembled view of the attribute or tie instead of an update.
+Resolve source rows to identities using the agreed match (`identity-and-keys.md`). A static identifier attribute is the simplest case: insert missing anchors with their identifiers, then join the other source facts to that mapping. The triggers' rules are in the Anchor repository, `docs/ANCHOR.md`, *Loading through the latest views*. In PostgreSQL, a statement that sets a changing time to what it already is must be an insert into the assembled view of the attribute or tie instead of an update. Do not assume the trigger is a backfill plan: verify how it handles late versions and restatements before using it for timestamped history.
 
 ## Route B: into the tables (Snowflake, Vertica, and any database without triggers)
 
-Nothing stops a duplicate, and some databases do not enforce keys at all, so **every insert filters out what exists**. The patterns, with `{src}` the source, `{md}` the Metadata value (`metadata.md`):
+Serialize competing writes where the database does not enforce keys. An anti-join to the target does not deduplicate the source or prevent two writers from inserting the same row. Validate that the source maps each value to at most one identity, collapse exact duplicates, and report conflicting candidates before inserting. The examples below use a single stable source key and a batch Metadata value (`metadata.md`).
 
 **Knots**: insert the values not yet present. Continue the ids from the current maximum (only the load writes knots, so this is safe):
 
@@ -46,42 +46,43 @@ SELECT "{AN}_ID", natural_key, {md} FROM {an}_new;
 
 **A database without sequences (BigQuery)** draws the ids itself: `COALESCE((SELECT max("{AN}_ID") FROM "{AN}_{AnchorDesc}"), 0) + ROW_NUMBER() OVER (ORDER BY k.natural_key)` in place of the sequence call. That is safe only while one load at a time writes the anchor (the same holds for knots, nexuses and, in bi and crt, the identity of every posit and tie): say so, and serialize the loads. Where the platform has identity columns (BigQuery has them in Preview), they replace this.
 
-When the model has a **key route** (`targets.md`: natural key views), use the key view `key_{AN}_{AnchorDesc}_{route}` instead of the identifier table in the `NOT EXISTS` and in every mapping of source rows to ids, matching every value of the key, and load the anchors that the key reaches first.
+For a **key route**, resolve every branch before testing for a new identity. A latest `key_…` view suffices only when its time semantics fit the input. For reused or historized keys, match at the relevant changing time in the correct source scope (`identity-and-keys.md`); treat ambiguous or incomplete routes as errors, not new identities. Load the constructs that complete the route before relying on it.
 
-**Static attributes**: insert only for owners without a row, mapping the source through the identifier:
+**Static attributes**: first validate one distinct non-null candidate per owner in the batch; report a candidate that disagrees with a stored value. The following insert assumes `{src}` and the identifier lookup have already passed those checks:
 
 ```sql
 INSERT INTO "{AN}_{ATR}_{AnchorDesc}_{AttrDesc}" (owner, value, "Metadata_{AN}_{ATR}")
-SELECT i."{AN}_KOD_{AN}_ID", {any one} (s.{value_col}), {md}
+SELECT DISTINCT i."{AN}_KOD_{AN}_ID", s.{value_col}, {md}
 FROM {src} s JOIN "{AN}_KOD_{AnchorDesc}_Code" i ON i."{AN}_KOD_{AnchorDesc}_Code" = s.{key_col}
 WHERE s.{value_col} IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM "{AN}_{ATR}_{AnchorDesc}_{AttrDesc}" a WHERE a.owner = i."{AN}_KOD_{AN}_ID")
-GROUP BY i."{AN}_KOD_{AN}_ID";
+  AND NOT EXISTS (SELECT 1 FROM "{AN}_{ATR}_{AnchorDesc}_{AttrDesc}" a WHERE a.owner = i."{AN}_KOD_{AN}_ID");
 ```
 
-**Historized attributes (the restatement check)**: insert a row only when the value differs from the latest stored value and is newer. `ChangedAt` comes from the source's change time, otherwise the load time (UTC). Take the latest row per owner from the source and from the target with a window function, and compare:
+### Historized attributes and ties: snapshots versus versioned input
+
+**Ordered snapshots.** Stage exactly one validated value per owner (or tie identifier), with a stable source observation timestamp if actual changing time is unavailable (`time.md`). Recognize a completed replay by its input/batch identity, and skip exact versions already stored. Before using the following filter, stop or route to a backfill if any remaining row is at or before the latest stored changing time. Report a different value at an occupied `(owner, ChangedAt)` as a conflict. Do not use the filter to discard any of these rows silently.
 
 ```sql
--- s: one row per owner from the source (latest by changed_at); cur: the latest stored row per owner
+-- s: one validated snapshot row per owner; cur: latest stored row per owner
 WHERE cur.owner IS NULL
    OR (s.changed_at > cur.ChangedAt AND s.val IS DISTINCT FROM cur.value)    -- use the database's null-safe inequality
 ```
 
-If the source holds several versions per key, keep them all, order them together with the latest stored row, and insert the ones whose value differs from the previous one (`LAG`).
+**Timestamped changes and backfills.** Preserve each candidate's source `ChangedAt` and validate uniqueness at `(owner or tie identifier, ChangedAt)` across the batch and target. An exact replay is a no-op; two different values at the same time require a correction policy, not an arbitrary winner. For out-of-order input, validate the merged history for the affected keys, including the predecessor and successor of each new version. Apply the model's restatement policy without silently shifting a later change boundary or rewriting stored rows; if that requires reconciliation, stop and report it. Comparing to the latest stored row (or seeding `LAG` with that row alone) is sufficient only for versions strictly newer than it. For example, with `A@10` and `C@30` already stored, `B@20` must be inserted by a supported backfill or reported as unsupported, never discarded.
 
-**Knotted attributes**: the same, joining the source to the knot on its value and storing the knot's id. **Ties**: map each role through its identifier (or knot) and insert combinations not already present on the identifier roles; a historized tie takes the same restatement check.
+**Knotted attributes**: the same, joining the source to the knot on its value and storing the knot's id. **Ties**: resolve every role, check conflicts for the same identifier, and use the same snapshot or timestamped-change rules for historized ties.
 
-**Nexuses**: a nexus row cannot be found again from the source by its roles (they are not unique), so stage the new events with ids drawn from the **sequence** (never `ROW_NUMBER()`), only for events whose source key is not loaded, and insert the nexus, its identifier, **all** its other attributes and its ties from the staging table in one unit; drop the staging table at the end.
+**Nexuses**: role values alone are not necessarily unique. Resolve the event key and all required roles first, and allocate a surrogate only for events not matched to an existing identity. Insert the nexus and its identifier mapping in one unit. Subsequent attribute or tie steps must resolve both new and existing identities, so late facts about an existing event can still load.
 
 Insert in key order where the database clusters or sorts by key.
 
 ## After loading
 
-Check what the database does not enforce (`targets.md`): the integrity checks where there are any (Snowflake's `IntegrityViolations`), and for a database without them duplicate keys, duplicate `(owner, ChangedAt)` in historized attributes and foreign keys without a parent. `ic_key_...` views report keys that two identities share.
+Check both successful execution and integrity before publishing (`metadata.md`). Check what the database does not enforce (`targets.md`): use generated checks where available, and otherwise check for duplicate keys and missing parents. Use an explicit temporal rule for uniqueness across historical slices; `ic_key_…` is not a substitute for that rule.
 
 ## Orchestration
 
-The order is by dependency: knots; anchors and nexuses with their identifiers (independent of each other, so they may run in parallel); then every other attribute (after its anchor, and after the knots if knotted) and every tie (after the anchors, nexuses and knots of its roles). A nexus loads after the anchors, knots and nexuses of its roles, then its attributes. The user's scheduler decides how: Snowflake tasks (one task per step with `AFTER`, a finalizer for the checks), SQL Server Agent jobs or SSIS, `pg_cron` or Airflow, dbt, or a script. Ask which; do not assume. Give each batch an id (`metadata.md`) so that it can be rolled back.
+Order steps by actual dependencies: independent knots and identity allocations can run in parallel; a nexus waits for its required roles; an attribute waits for its owner and any knot; a tie waits for all its roles. A key route adds dependencies on the constructs that complete it. Use the user's scheduler. Give each batch an ID for provenance and dependency-checked recovery (`metadata.md`).
 
 A **full rebuild** (truncate in the order ties, nexus attributes, nexuses, anchor attributes, anchors, knots) destroys all history. Provide it separately, warn about it, and run it only after explicit confirmation.
 
