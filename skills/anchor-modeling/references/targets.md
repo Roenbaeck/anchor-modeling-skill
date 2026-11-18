@@ -17,8 +17,6 @@ What differs between databases, and what has been run. Load this as soon as the 
 | Encryption groups (uni) | yes | no | no | no | no | no |
 | Generated and **run on a real server** | yes (all models deployed, trigger, key and perspective tests) | yes (account, same tests) | yes (PostgreSQL 16, same tests) | **no**: generated and linted | **no**: generated and linted | **no**: generated, parsed with a PL/SQL grammar and cross-checked, never run |
 
-"Modeler only" means the Anchor Modeler generates it (its *Generate SQL*, with the database selected) but this skill has no file for it, and it has never been run on a server. Say this to the user; do not describe such a script as tested. (Oracle is no longer modeler only: it has a file here, and it has been parsed but never run on a server.)
-
 ## Names, types and quoting
 
 | | SQL Server | Snowflake | PostgreSQL | Vertica | BigQuery | Oracle |
