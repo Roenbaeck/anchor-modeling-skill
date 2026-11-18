@@ -48,7 +48,7 @@ SELECT "{AN}_ID", natural_key, {md} FROM {an}_new;
 
 For a **key route**, resolve every branch before testing for a new identity. A latest `key_…` view suffices only when its time semantics fit the input. For reused or historized keys, match at the relevant changing time in the correct source scope (`identity-and-keys.md`); treat ambiguous or incomplete routes as errors, not new identities. Load the constructs that complete the route before relying on it.
 
-**Static attributes**: first validate one distinct non-null candidate per owner in the batch; report a candidate that disagrees with a stored value. The following insert assumes `{src}` and the identifier lookup have already passed those checks:
+**Static attributes**: first validate one distinct non-null candidate per owner in the batch; report a candidate that disagrees with a stored value. When several rows or sources disagree about one owner, apply a stated precedence or stop; `ANY_VALUE`, `MIN`, `MAX` or `DISTINCT` over the union is not a rule (SKILL.md, *Pitfalls*). The following insert assumes `{src}` and the identifier lookup have already passed those checks:
 
 ```sql
 INSERT INTO "{AN}_{ATR}_{AnchorDesc}_{AttrDesc}" (owner, value, "Metadata_{AN}_{ATR}")
@@ -82,7 +82,7 @@ Check both successful execution and integrity before publishing (`metadata.md`).
 
 ## Orchestration
 
-Order steps by actual dependencies: independent knots and identity allocations can run in parallel; a nexus waits for its required roles; an attribute waits for its owner and any knot; a tie waits for all its roles. A key route adds dependencies on the constructs that complete it. Use the user's scheduler. Give each batch an ID for provenance and dependency-checked recovery (`metadata.md`).
+Order steps by actual dependencies: independent knots and identity allocations can run in parallel; a nexus waits for its required roles (if one does not resolve, stop and report: the role belongs in a tie, and is never filled with `0` or a dummy anchor); an attribute waits for its owner and any knot; a tie waits for all its roles. A key route adds dependencies on the constructs that complete it. Use the user's scheduler. Give each batch an ID for provenance and dependency-checked recovery (`metadata.md`).
 
 A **full rebuild** (truncate in the order ties, nexus attributes, nexuses, anchor attributes, anchors, knots) destroys all history. Provide it separately, warn about it, and run it only after explicit confirmation.
 
