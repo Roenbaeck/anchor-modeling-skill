@@ -72,7 +72,8 @@ Load `references/constructs.md`, `references/modeling-practice.md` and `referenc
 - For recurring loads of anchors and nexuses, settle the identity match: a static identifier attribute for one stable value, a key route over the model (possibly historized), or a trusted upstream mapping. Confirm source scope, reuse and ambiguity (`references/identity-and-keys.md`).
 - Each column → **attribute** (3-letter mnemonic). Static or historized: a snapshot shows nothing about change, so ask which properties change, in the user's words.
 - A value from a shared, stable domain can use a **knot**. If the lookup item needs separately modeled properties, such as a code and a description, use an anchor; historize the properties whose history matters.
-- Foreign keys and join tables are evidence for **ties**; confirm cardinality with the user. An independently identifiable happening can be a **nexus** when its roles are required and stable. Keep optional or independently changing participants in separate ties.
+- Foreign keys and join tables are evidence for **ties**; confirm cardinality with the user. An independently identifiable happening can be a **nexus** when **every role is present in every row of the data**. Test each candidate role (null, blank, dummy codes such as `0` or `-1`, values with no match in the other thing's list; `references/modeling-practice.md`, *Asking the data*) before you decide. A role that fails the test, and any independently changing participant, is a **tie** of its own, identified by the nexus. Never fill a role with `0`, `-1` or an "unknown" row to make it fit (*Pitfalls*).
+- **Descriptions.** Write a description for every construct from the confirmed sentence, in the user's words. The generator turns them into comments; a model without descriptions is not ready to present.
 
 Present the model as the practice file says (*Presenting the model*): sentences in the user's words, examples with the case the model does not allow, assumptions, open questions with your proposed answers, and then the table of constructs.
 
@@ -122,6 +123,8 @@ If `check` or `generate` says the model has problems, correct the model as the l
 ### G4: Run the DDL
 
 Run the approved script in order. A script from the generator is already in dependency order. Split it into statements with care: a function body between `$$ ... $$`, `BEGIN ... END` or a `GO` line is one batch (`references/generator.md`, *Running the script*). If a statement fails, stop and show the user the statement and the message; **do not edit generated SQL to get past it**, since a fix belongs in the generator's templates (report it: `https://github.com/Roenbaeck/anchor/issues`).
+
+Afterwards check that the descriptions arrived: list the model's tables whose comment is empty (in the catalog of the database, where it keeps comments). One without a comment means the model XML had no `<description>` for it: add it to the XML and generate again, not by hand.
 
 If you cannot run SQL, hand the script to the user as a file, and say in what order to run it.
 
@@ -220,6 +223,9 @@ Load `references/constructs.md`, and `references/time.md` for anything about his
 - **Never hash a natural key to make an identity.** Identities are sequence integers; a hash of a key that can change becomes another thing, and costs several times the space (`references/identity-and-keys.md`).
 - **A rule over a historized value has to hold in every time slice.** A CHECK constraint or a unique index cannot say that (`references/constraints.md`).
 - **Source decimals and dates may be text** in a locale: convert explicitly when loading numbers and dates from text.
+- **No sentinel identities.** A role that is sometimes absent is a tie that sometimes has no row. Never store `0`, `-1` or a placeholder anchor in a nexus role: declared keys are a statement that the optimizer may trust, so a reference to nothing is a false one, and every join through it loses those rows silently. Missing means no row.
+- **When a role does not resolve, the model is wrong, not the load.** A `NOT NULL` error on a role column, or a source row that finds no anchor, means the role is optional or the identity list is incomplete. Stop, count and report the rows, and go back to R2 or E2; do not make the statement pass with `COALESCE(x, 0)` or a dummy anchor.
+- **Sources that disagree.** When several rows or sources give different values for one property of one thing, apply a stated precedence (and list it as an assumption) or stop and report the count. Never pick with `ANY_VALUE`, `MIN`, `MAX` or `DISTINCT` over a union: the pick can differ between loads, and each flip is stored as a change, so the history is false.
 - **Never edit generated SQL to get past an error**, and never run a script from a failed generator call.
 - **Do not invent what has not been run.** `targets.md` lists what has been run on a real server for each database; say so when the user's database is one that has not.
 
@@ -231,6 +237,7 @@ Load `references/constructs.md`, and `references/time.md` for anything about his
 - ✋ After E2: extension DDL approved
 - ✋ After C1 and C2: the rule, and the check
 - ✋ After L1: load plan and SQL approved
+- ✋ After a failed load: any change to the load SQL that changes what is loaded (a default, a filter, a precedence rule) goes back to the user before it is run
 - ✋ Before any truncate or full rebuild: explicit confirmation
 
 ## Output
